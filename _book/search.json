@@ -1,0 +1,82 @@
+[
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html",
+    "href": "capitulo1-estadistica-descriptiva.html",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "",
+    "text": "3.1 2. Generación de Datos Simulados\nPara ilustrar los conceptos, simularemos un conjunto de datos que representa el rendimiento académico de 300 estudiantes universitarios. Incluiremos variables cualitativas (Género, Facultad) y cuantitativas (Edad, Nota Promedio, Horas de Estudio).\nCode\nset.seed(2026) # Para reproducibilidad\n\nn &lt;- 300\n\ndatos_estudiantes &lt;- data.frame(\n  id = 1:n,\n  genero = sample(c(\"Femenino\", \"Masculino\"), n, replace = TRUE, prob = c(0.5, 0.5)),\n  facultad = sample(c(\"Ingeniería\", \"Ciencias\", \"Artes\", \"Economía\"), n, replace = TRUE),\n  edad = sample(17:25, n, replace = TRUE, prob = c(0.1, 0.3, 0.25, 0.15, 0.1, 0.05, 0.03, 0.01, 0.01)),\n  horas_estudio = round(rnorm(n, mean = 12, sd = 4), 1),\n  nota_final = round(rnorm(n, mean = 3.8, sd = 0.7), 2)\n)\n\n# Ajustes lógicos (limpieza de datos simulados)\ndatos_estudiantes &lt;- datos_estudiantes %&gt;%\n  mutate(\n    horas_estudio = ifelse(horas_estudio &lt; 0, 0, horas_estudio),\n    nota_final = pmin(pmax(nota_final, 0), 5.0) # Acotar notas entre 0 y 5\n  )\n\n# Vista previa\nhead(datos_estudiantes) %&gt;%\n  kable(caption = \"Primeros registros del dataset de Estudiantes\") %&gt;%\n  kable_styling(bootstrap_options = c(\"striped\", \"hover\"), full_width = F)\n\n\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\n\n\n\nPrimeros registros del dataset de Estudiantes\n\n\nid\ngenero\nfacultad\nedad\nhoras_estudio\nnota_final\n\n\n\n\n1\nFemenino\nEconomía\n19\n14.1\n4.12\n\n\n2\nFemenino\nCiencias\n20\n16.5\n3.87\n\n\n3\nMasculino\nIngeniería\n19\n13.2\n4.03\n\n\n4\nMasculino\nEconomía\n20\n12.2\n3.74\n\n\n5\nFemenino\nCiencias\n18\n18.3\n3.68\n\n\n6\nMasculino\nArtes\n18\n14.9\n2.70",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#medidas-de-tendencia-central",
+    "href": "capitulo1-estadistica-descriptiva.html#medidas-de-tendencia-central",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.2 3. Medidas de Tendencia Central",
+    "text": "3.2 3. Medidas de Tendencia Central\nEstas medidas nos indican alrededor de qué valores se agrupan los datos. Son el “centro de gravedad” de la distribución.\n\n3.2.1 3.1. La Media Aritmética ()\nEs la suma de todos los valores dividida por el número total de observaciones. Es muy sensible a valores atípicos (outliers).\n\\[ \\bar{x} = \\frac{1}{n}\\sum_{i=1}^n x_i \\]\n\n\n3.2.2 3.2. La Mediana ()\nEs el valor que divide la distribución ordenada en dos partes iguales (50% de datos a cada lado). Es una medida robusta.\n\n\n3.2.3 3.3. Cálculo en R\nCalcularemos la media y mediana de la nota_final.\n\n\nCode\nstats_central &lt;- datos_estudiantes %&gt;%\n  summarise(\n    Media = mean(nota_final),\n    Mediana = median(nota_final),\n    Media_Recortada = mean(nota_final, trim = 0.1) # Elimina el 10% extremo superior e inferior\n  )\n\nstats_central %&gt;%\n  kable(digits = 2, caption = \"Medidas de Tendencia Central (Nota Final)\")\n\n\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\n\n\n\nMedidas de Tendencia Central (Nota Final)\n\n\nMedia\nMediana\nMedia_Recortada\n\n\n\n\n3.76\n3.75\n3.76\n\n\n\n\n\n\nInterpretación: Si la media es muy diferente a la mediana, es indicio de asimetría. En este caso, la media es 3.76 y la mediana 3.75, lo que sugiere una distribución bastante simétrica.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#medidas-de-dispersión",
+    "href": "capitulo1-estadistica-descriptiva.html#medidas-de-dispersión",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.3 4. Medidas de Dispersión",
+    "text": "3.3 4. Medidas de Dispersión\nSaber el promedio no es suficiente; necesitamos saber qué tan dispersos están los datos.\n\nRango: Diferencia entre el máximo y el mínimo.\nVarianza (): Promedio de las desviaciones al cuadrado.\nDesviación Estándar (): Raíz cuadrada de la varianza (mismas unidades que la variable).\nCoeficiente de Variación (CV): Medida relativa de dispersión (porcentaje).\n\n\\[ CV = \\frac{s}{|\\bar{x}|} \\times 100% \\]\n\n\nCode\nstats_dispersion &lt;- datos_estudiantes %&gt;%\n  summarise(\n    Minimo = min(nota_final),\n    Maximo = max(nota_final),\n    Rango = max(nota_final) - min(nota_final),\n    Varianza = var(nota_final),\n    Desv_Std = sd(nota_final),\n    CV = (sd(nota_final) / mean(nota_final)) * 100\n  )\n\nstats_dispersion %&gt;%\n  kable(digits = 3, caption = \"Medidas de Dispersión de las Notas\")\n\n\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\n\n\n\nMedidas de Dispersión de las Notas\n\n\nMinimo\nMaximo\nRango\nVarianza\nDesv_Std\nCV\n\n\n\n\n1.67\n5\n3.33\n0.434\n0.659\n17.52",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#medidas-de-forma-asimetría-y-curtosis",
+    "href": "capitulo1-estadistica-descriptiva.html#medidas-de-forma-asimetría-y-curtosis",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.4 5. Medidas de Forma: Asimetría y Curtosis",
+    "text": "3.4 5. Medidas de Forma: Asimetría y Curtosis\nUtilizamos la librería e1071 para calcular estos coeficientes.\n\nAsimetría (Skewness): Mide hacia dónde se inclina la cola de la distribución.\n: Simétrica.\n: Asimetría positiva (cola a la derecha).\n: Asimetría negativa (cola a la izquierda).\nCurtosis (Kurtosis): Mide qué tan “puntuda” o “aplastada” es la distribución respecto a una normal.\n\n\n\nCode\nstats_forma &lt;- datos_estudiantes %&gt;%\n  summarise(\n    Asimetria = skewness(nota_final),\n    Curtosis = kurtosis(nota_final)\n  )\n\nprint(stats_forma)\n\n\n   Asimetria      Curtosis\n1 -0.1545296 -0.0006418704",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#visualización-de-distribuciones-numéricas",
+    "href": "capitulo1-estadistica-descriptiva.html#visualización-de-distribuciones-numéricas",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.5 6. Visualización de Distribuciones Numéricas",
+    "text": "3.5 6. Visualización de Distribuciones Numéricas\nEl Histograma y el Diagrama de Caja (Boxplot) son las herramientas visuales por excelencia.\n\n3.5.1 Histograma con Densidad\n\n\nCode\nggplot(datos_estudiantes, aes(x = nota_final)) +\n  geom_histogram(aes(y = ..density..), bins = 20, fill = \"#69b3a2\", color = \"white\", alpha = 0.8) +\n  geom_density(color = \"#e9c46a\", size = 1.2) +\n  geom_vline(aes(xintercept = mean(nota_final)), color = \"red\", linetype = \"dashed\") +\n  labs(title = \"Histograma de Notas\", x = \"Nota Final (0-5)\", y = \"Densidad\")\n\n\nWarning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.\nℹ Please use `linewidth` instead.\n\n\nWarning: The dot-dot notation (`..density..`) was deprecated in ggplot2 3.4.0.\nℹ Please use `after_stat(density)` instead.\n\n\n\n\n\n\n\n\nFigure 3.1: Distribución de las Notas Finales\n\n\n\n\n\n\n\n3.5.2 Análisis Bivariado: Comparación por Grupos\n¿Difiere el rendimiento académico según la facultad?\n\n\nCode\nggplot(datos_estudiantes, aes(x = reorder(facultad, nota_final, FUN = median), y = nota_final, fill = facultad)) +\n  geom_boxplot(alpha = 0.7, outlier.colour = \"red\") +\n  stat_summary(fun = mean, geom = \"point\", shape = 18, size = 3, color = \"black\") + # Rombo negro es la media\n  scale_fill_brewer(palette = \"Set3\") +\n  labs(title = \"Rendimiento por Facultad\",\n       subtitle = \"El rombo negro indica la media, la línea central la mediana\",\n       x = \"Facultad\", y = \"Nota Final\") +\n  theme(legend.position = \"none\")\n\n\n\n\n\n\n\n\nFigure 3.2: Comparación de notas por Facultad",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#variables-cualitativas",
+    "href": "capitulo1-estadistica-descriptiva.html#variables-cualitativas",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.6 7. Variables Cualitativas",
+    "text": "3.6 7. Variables Cualitativas\nPara variables categóricas (como facultad o genero), usamos tablas de frecuencia y gráficos de barras.\n\n\nCode\ntabla_facultad &lt;- datos_estudiantes %&gt;%\n  group_by(facultad) %&gt;%\n  summarise(\n    Frec_Abs = n(),\n    Nota_Promedio = mean(nota_final)\n  ) %&gt;%\n  mutate(\n    Frec_Rel = Frec_Abs / sum(Frec_Abs),\n    Porcentaje = paste0(round(Frec_Rel * 100, 1), \"%\")\n  ) %&gt;%\n  arrange(desc(Frec_Abs))\n\ntabla_facultad %&gt;%\n  kable(caption = \"Distribución de estudiantes por Facultad\")\n\n\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\nWarning: 'xfun::attr()' is deprecated.\nUse 'xfun::attr2()' instead.\nSee help(\"Deprecated\")\n\n\n\nDistribución de estudiantes por Facultad\n\n\nfacultad\nFrec_Abs\nNota_Promedio\nFrec_Rel\nPorcentaje\n\n\n\n\nCiencias\n90\n3.765889\n0.3000000\n30%\n\n\nIngeniería\n74\n3.821216\n0.2466667\n24.7%\n\n\nEconomía\n72\n3.709306\n0.2400000\n24%\n\n\nArtes\n64\n3.744531\n0.2133333\n21.3%\n\n\n\n\n\n\n\nCode\nggplot(tabla_facultad, aes(x = reorder(facultad, Frec_Abs), y = Frec_Abs)) +\n  geom_col(fill = \"steelblue\") +\n  geom_text(aes(label = Frec_Abs), hjust = -0.2) +\n  coord_flip() + # Barras horizontales\n  labs(title = \"Estudiantes por Facultad\", x = \"Facultad\", y = \"Cantidad\")\n\n\n\n\n\n\n\n\nFigure 3.3: Conteo de estudiantes por facultad",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#correlación",
+    "href": "capitulo1-estadistica-descriptiva.html#correlación",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.7 8. Correlación",
+    "text": "3.7 8. Correlación\nFinalmente, analizaremos si existe relación lineal entre las horas_estudio y la nota_final.\n\n\nCode\ncorrelacion &lt;- cor(datos_estudiantes$horas_estudio, datos_estudiantes$nota_final)\n\nggplot(datos_estudiantes, aes(x = horas_estudio, y = nota_final)) +\n  geom_point(alpha = 0.5, color = \"darkblue\") +\n  geom_smooth(method = \"lm\", color = \"firebrick\", se = TRUE) +\n  labs(title = paste(\"Relación Horas vs. Nota (r =\", round(correlacion, 2), \")\"),\n       x = \"Horas de Estudio Semanales\", y = \"Nota Final\")\n\n\n`geom_smooth()` using formula = 'y ~ x'\n\n\n\n\n\n\n\n\nFigure 3.4: Correlación entre horas de estudio y nota final",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  },
+  {
+    "objectID": "capitulo1-estadistica-descriptiva.html#ejercicios-prácticos",
+    "href": "capitulo1-estadistica-descriptiva.html#ejercicios-prácticos",
+    "title": "3  Estadística Descriptiva y Análisis Exploratorio",
+    "section": "3.8 9. Ejercicios Prácticos",
+    "text": "3.8 9. Ejercicios Prácticos\nA continuación se proponen ejercicios para que el lector ponga en práctica lo aprendido:\n\nCarga de datos: Importe el dataset iris que viene por defecto en R.\nAnálisis descriptivo: Calcule la media y desviación estándar de la variable Sepal.Length para cada una de las especies (Species).\nVisualización: Cree un histograma del ancho del pétalo (Petal.Width) y coloréelo según la especie.\nInterpretación: ¿Qué especie tiene los pétalos más largos en promedio? ¿Cuál especie presenta mayor variabilidad?\n\n\n\n\n\n\n\nTip\n\n\n\nUtilice la función group_by() seguida de summarise() para los cálculos por grupo.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Estadística Descriptiva y Análisis Exploratorio</span>"
+    ]
+  }
+]

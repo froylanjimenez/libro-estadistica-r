@@ -1,0 +1,280 @@
+
+```markdown
+# Estadística Descriptiva y Análisis Exploratorio {#sec-cap1}
+
+La estadística descriptiva es la etapa inicial y fundamental de cualquier análisis de datos. Su objetivo es resumir, describir y visualizar las características principales de un conjunto de datos, transformando observaciones crudas en información comprensible.
+
+En este capítulo, aprenderemos a utilizar R y el ecosistema `tidyverse` para calcular medidas estadísticas y generar visualizaciones que nos permitan entender la naturaleza de nuestras variables.
+
+## 1. Preparación del Entorno
+
+Antes de comenzar, cargaremos las librerías necesarias. Utilizaremos `tidyverse` para la manipulación y visualización, `knitr` y `kableExtra` para tablas formatadas, y `e1071` para cálculos de asimetría y curtosis.
+
+```{r}
+#| label: setup-cap1
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(e1071)      # Para asimetría y curtosis
+library(patchwork)  # Para unir gráficos
+
+# Configuración global del tema gráfico
+theme_set(theme_minimal() + 
+            theme(
+              plot.title = element_text(face = "bold", size = 12),
+              axis.title = element_text(face = "bold"),
+              panel.grid.minor = element_blank()
+            ))
+
+```
+
+## 2. Generación de Datos Simulados
+
+Para ilustrar los conceptos, simularemos un conjunto de datos que representa el rendimiento académico de 300 estudiantes universitarios. Incluiremos variables cualitativas (Género, Facultad) y cuantitativas (Edad, Nota Promedio, Horas de Estudio).
+
+```{r}
+#| label: data-generation
+
+set.seed(2026) # Para reproducibilidad
+
+n <- 300
+
+datos_estudiantes <- data.frame(
+  id = 1:n,
+  genero = sample(c("Femenino", "Masculino"), n, replace = TRUE, prob = c(0.5, 0.5)),
+  facultad = sample(c("Ingeniería", "Ciencias", "Artes", "Economía"), n, replace = TRUE),
+  edad = sample(17:25, n, replace = TRUE, prob = c(0.1, 0.3, 0.25, 0.15, 0.1, 0.05, 0.03, 0.01, 0.01)),
+  horas_estudio = round(rnorm(n, mean = 12, sd = 4), 1),
+  nota_final = round(rnorm(n, mean = 3.8, sd = 0.7), 2)
+)
+
+# Ajustes lógicos (limpieza de datos simulados)
+datos_estudiantes <- datos_estudiantes %>%
+  mutate(
+    horas_estudio = ifelse(horas_estudio < 0, 0, horas_estudio),
+    nota_final = pmin(pmax(nota_final, 0), 5.0) # Acotar notas entre 0 y 5
+  )
+
+# Vista previa
+head(datos_estudiantes) %>%
+  kable(caption = "Primeros registros del dataset de Estudiantes") %>%
+  kable_styling(bootstrap_options = c("striped", "hover"), full_width = F)
+
+```
+
+---
+
+## 3. Medidas de Tendencia Central
+
+Estas medidas nos indican alrededor de qué valores se agrupan los datos. Son el "centro de gravedad" de la distribución.
+
+### 3.1. La Media Aritmética ()
+
+Es la suma de todos los valores dividida por el número total de observaciones. Es muy sensible a valores atípicos (*outliers*).
+
+$$ \bar{x} = \frac{1}{n}\sum_{i=1}^n x_i $$
+
+### 3.2. La Mediana ()
+
+Es el valor que divide la distribución ordenada en dos partes iguales (50% de datos a cada lado). Es una medida robusta.
+
+### 3.3. Cálculo en R
+
+Calcularemos la media y mediana de la `nota_final`.
+
+```{r}
+#| label: tendencia-central
+
+stats_central <- datos_estudiantes %>%
+  summarise(
+    Media = mean(nota_final),
+    Mediana = median(nota_final),
+    Media_Recortada = mean(nota_final, trim = 0.1) # Elimina el 10% extremo superior e inferior
+  )
+
+stats_central %>%
+  kable(digits = 2, caption = "Medidas de Tendencia Central (Nota Final)")
+
+```
+
+> **Interpretación:** Si la media es muy diferente a la mediana, es indicio de asimetría. En este caso, la media es `r round(mean(datos_estudiantes$nota_final), 2)` y la mediana `r median(datos_estudiantes$nota_final)`, lo que sugiere una distribución bastante simétrica.
+
+---
+
+## 4. Medidas de Dispersión
+
+Saber el promedio no es suficiente; necesitamos saber qué tan dispersos están los datos.
+
+1. **Rango:** Diferencia entre el máximo y el mínimo.
+2. **Varianza ():** Promedio de las desviaciones al cuadrado.
+3. **Desviación Estándar ():** Raíz cuadrada de la varianza (mismas unidades que la variable).
+4. **Coeficiente de Variación (CV):** Medida relativa de dispersión (porcentaje).
+
+$$ CV = \frac{s}{|\bar{x}|} \times 100% $$
+
+```{r}
+#| label: dispersion
+
+stats_dispersion <- datos_estudiantes %>%
+  summarise(
+    Minimo = min(nota_final),
+    Maximo = max(nota_final),
+    Rango = max(nota_final) - min(nota_final),
+    Varianza = var(nota_final),
+    Desv_Std = sd(nota_final),
+    CV = (sd(nota_final) / mean(nota_final)) * 100
+  )
+
+stats_dispersion %>%
+  kable(digits = 3, caption = "Medidas de Dispersión de las Notas")
+
+```
+
+---
+
+## 5. Medidas de Forma: Asimetría y Curtosis
+
+Utilizamos la librería `e1071` para calcular estos coeficientes.
+
+* **Asimetría (Skewness):** Mide hacia dónde se inclina la cola de la distribución.
+* : Simétrica.
+* : Asimetría positiva (cola a la derecha).
+* : Asimetría negativa (cola a la izquierda).
+
+
+* **Curtosis (Kurtosis):** Mide qué tan "puntuda" o "aplastada" es la distribución respecto a una normal.
+
+```{r}
+#| label: forma
+
+stats_forma <- datos_estudiantes %>%
+  summarise(
+    Asimetria = skewness(nota_final),
+    Curtosis = kurtosis(nota_final)
+  )
+
+print(stats_forma)
+
+```
+
+---
+
+## 6. Visualización de Distribuciones Numéricas
+
+El **Histograma** y el **Diagrama de Caja (Boxplot)** son las herramientas visuales por excelencia.
+
+### Histograma con Densidad
+
+```{r}
+#| label: fig-hist-notas
+#| fig-cap: "Distribución de las Notas Finales"
+
+ggplot(datos_estudiantes, aes(x = nota_final)) +
+  geom_histogram(aes(y = ..density..), bins = 20, fill = "#69b3a2", color = "white", alpha = 0.8) +
+  geom_density(color = "#e9c46a", size = 1.2) +
+  geom_vline(aes(xintercept = mean(nota_final)), color = "red", linetype = "dashed") +
+  labs(title = "Histograma de Notas", x = "Nota Final (0-5)", y = "Densidad")
+
+```
+
+### Análisis Bivariado: Comparación por Grupos
+
+¿Difiere el rendimiento académico según la facultad?
+
+```{r}
+#| label: fig-boxplot-facultad
+#| fig-cap: "Comparación de notas por Facultad"
+
+ggplot(datos_estudiantes, aes(x = reorder(facultad, nota_final, FUN = median), y = nota_final, fill = facultad)) +
+  geom_boxplot(alpha = 0.7, outlier.colour = "red") +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3, color = "black") + # Rombo negro es la media
+  scale_fill_brewer(palette = "Set3") +
+  labs(title = "Rendimiento por Facultad",
+       subtitle = "El rombo negro indica la media, la línea central la mediana",
+       x = "Facultad", y = "Nota Final") +
+  theme(legend.position = "none")
+
+```
+
+---
+
+## 7. Variables Cualitativas
+
+Para variables categóricas (como `facultad` o `genero`), usamos tablas de frecuencia y gráficos de barras.
+
+```{r}
+#| label: tablas-frecuencia
+
+tabla_facultad <- datos_estudiantes %>%
+  group_by(facultad) %>%
+  summarise(
+    Frec_Abs = n(),
+    Nota_Promedio = mean(nota_final)
+  ) %>%
+  mutate(
+    Frec_Rel = Frec_Abs / sum(Frec_Abs),
+    Porcentaje = paste0(round(Frec_Rel * 100, 1), "%")
+  ) %>%
+  arrange(desc(Frec_Abs))
+
+tabla_facultad %>%
+  kable(caption = "Distribución de estudiantes por Facultad")
+
+```
+
+```{r}
+#| label: fig-barras-facultad
+#| fig-cap: "Conteo de estudiantes por facultad"
+
+ggplot(tabla_facultad, aes(x = reorder(facultad, Frec_Abs), y = Frec_Abs)) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = Frec_Abs), hjust = -0.2) +
+  coord_flip() + # Barras horizontales
+  labs(title = "Estudiantes por Facultad", x = "Facultad", y = "Cantidad")
+
+```
+
+---
+
+## 8. Correlación
+
+Finalmente, analizaremos si existe relación lineal entre las `horas_estudio` y la `nota_final`.
+
+```{r}
+#| label: fig-correlacion
+#| fig-cap: "Correlación entre horas de estudio y nota final"
+
+correlacion <- cor(datos_estudiantes$horas_estudio, datos_estudiantes$nota_final)
+
+ggplot(datos_estudiantes, aes(x = horas_estudio, y = nota_final)) +
+  geom_point(alpha = 0.5, color = "darkblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = TRUE) +
+  labs(title = paste("Relación Horas vs. Nota (r =", round(correlacion, 2), ")"),
+       x = "Horas de Estudio Semanales", y = "Nota Final")
+
+```
+
+---
+
+## 9. Ejercicios Prácticos
+
+A continuación se proponen ejercicios para que el lector ponga en práctica lo aprendido:
+
+1. **Carga de datos:** Importe el dataset `iris` que viene por defecto en R.
+2. **Análisis descriptivo:** Calcule la media y desviación estándar de la variable `Sepal.Length` para cada una de las especies (`Species`).
+3. **Visualización:** Cree un histograma del ancho del pétalo (`Petal.Width`) y coloréelo según la especie.
+4. **Interpretación:** ¿Qué especie tiene los pétalos más largos en promedio? ¿Cuál especie presenta mayor variabilidad?
+
+::: {.callout-tip}
+
+## Tip
+
+Utilice la función `group_by()` seguida de `summarise()` para los cálculos por grupo.
+:::
+
+```
+
+```

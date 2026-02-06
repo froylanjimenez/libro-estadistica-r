@@ -1,0 +1,24 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "Estadística con R"
+  author: "Froylan Jimenez"
+  date: last-modified
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - capitulo1-estadistica-descriptiva.qmd
+    - capitulo2-graficos.qmd
+    - capitulo3-inferencia.qmd
+    - capitulo4-machine-learning.qmd
+    - referencias.qmd
+
+bibliography: referencias.bib
+
+format:
+  html:
+    theme: cosmo
+    code-fold: true
+    toc: true
